@@ -1,12 +1,12 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.HashSet;
-import java.util.Iterator;
+import java.util.TreeSet;
 
 import org.graphstream.algorithm.*;
 import org.graphstream.graph.Path;
-import org.graphstream.graph.Edge;
 import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.*;
 
@@ -16,7 +16,7 @@ public class Graph extends DefaultGraph implements GraphInterface {
 		super(id);
 	}
 	
-	/* Parse et crée le graphe d'après le fichier .edges du dataset ego-twitter de Snap */
+	/* Parse et crée le graphe d'après les fichiers du dataset ego-facebook de Snap (ici dans data) */
 	public void init(String filename) {
 		try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
 		    String line;
@@ -56,18 +56,6 @@ public class Graph extends DefaultGraph implements GraphInterface {
 		}
 		return adjacencyMatrix;
 	}
-	
-	/* Retourne le nombre de composantes connexes */
-	public int getConnectedComponentsCount() {
-		ConnectedComponents cc = new ConnectedComponents();
-		cc.init(this);
-		return cc.getConnectedComponentsCount();
-	}
-
-	/* Retourne si oui ou non le graphe est connexe */
-	public boolean isConnected() {
-		return this.getConnectedComponentsCount() < 2;
-	}
 
 	/* Retourne le plus court chemin entre node1 et node2 selon l'algorithme A* */
 	public Path getShortestPath(Node node1, Node node2) {
@@ -76,18 +64,41 @@ public class Graph extends DefaultGraph implements GraphInterface {
  		return astar.getShortestPath();
 	}
 
-	/* Retourne les voisins du noeud node en respectant le sens des arcs */
+	/* Retourne les voisins du noeud node */
 	public HashSet<Node> getNeighbourhood(Node node) {
 		HashSet<Node> neighbors = new HashSet<Node>();
-		
-		/* Pour tous les arcs "sortants" du noeud node */
-		/*Iterator<Edge> ite = node.getLeavingEdgeIterator();
-		while(ite.hasNext()) {
-			/* Ajoute le noeud "à l'opposé" du noeud node */
-			/*neighbors.add(ite.next().getOpposite(node));
-		}*/
-		
+
+		/* Pour toutes les arêtes du noeud node */
+		for(int i = 0; i < node.getDegree(); i++) {
+			neighbors.add(node.getEdge(i).getOpposite(node));
+		}
 		return neighbors;
+	}
+	
+	/* Retourne un noeud au hasard du graphe */
+	public Node getRandomNode() {
+		return Toolkit.randomNode(this);
+	}
+	
+	/* Retourne si oui ou non le graphe est connexe */
+	public boolean isConnected() {
+		return this.getConnectedComponentsCount() < 2;
+	}
+	
+	/* Retourne le nombre de composantes connexes */
+	public int getConnectedComponentsCount() {
+		ConnectedComponents cc = new ConnectedComponents();
+		cc.init(this);
+		return cc.getConnectedComponentsCount();
+	}
+	
+	/* Retourne le degré moyen des noeuds */
+	public float getAverageDegree() {
+		float sumDegree = 0;
+		for(Node node : this) {
+			sumDegree += node.getDegree();
+		}
+		return sumDegree/this.nodeCount;
 	}
 
 	/* Retourne le diamètre du graphe : la plus grande distance géodésique possible entre 2 sommets */
@@ -124,15 +135,16 @@ public class Graph extends DefaultGraph implements GraphInterface {
 		return (float)(node.getDegree()/(this.nodeCount-1.0));
 	}
 	
-	/* Retourne la somme des distances des plus courts chemins entre tous les noeud vers le noeud node */
+	/* Retourne la somme des distances des plus courts chemins entre tous les noeuds vers le noeud node */
 	public float getSumDistancesShortestPathTo(Node node) {
 		float sumDistancesToNode = 0;
-		/*for(Node currentNode : this.getEachNode()) {
+
+		for (Node currentNode : this) {
 			Path shortestPath = this.getShortestPath(currentNode, node);
 			if(shortestPath != null) {
 				sumDistancesToNode += shortestPath.size();
 			}
-		}*/
+		}
 		return sumDistancesToNode;
 	}
 	
@@ -148,8 +160,146 @@ public class Graph extends DefaultGraph implements GraphInterface {
 		return (float)((this.nodeCount-1.0)/sumDistancesToNode);
 	}
 
-	/*** TODO ***/
-	public float getBetweennessCentrality(Node node) {
-		return (float)0.0;
+	/* Retourne le noeud ayant le plus grand score de centralité par voisinage */
+	/** O(n) **/
+	public Node getNodeWithGreaterCentralityByNeighborhood() {
+		/* Comparator TreeSet sur les scores de centralité par voisinage */
+		Comparator<Node> comp = (Node n1, Node n2) -> (Float.compare(this.getCentralityByNeighborhood(n1), (this.getCentralityByNeighborhood(n2))));
+		TreeSet<Node> nodes_list = new TreeSet<Node>(comp);
+		
+		/* Pour tous les noeuds */
+		for(Node node : this) {
+			nodes_list.add(node);
+		}
+		
+		return nodes_list.last();
 	}
+
+	/* Retourne le noeud ayant le plus grand score de centralité moyenne */
+	/** Trop grande complexité **/
+	public Node getNodeWithGreaterAverageCentrality() {
+		/* Comparator TreeSet sur les scores de centralité moyenne */
+		Comparator<Node> comp = (Node n1, Node n2) -> (Float.compare(this.getAverageCentrality(n1), (this.getAverageCentrality(n2))));
+		TreeSet<Node> nodes_list = new TreeSet<Node>(comp);
+		
+		for(Node node : this) {
+			nodes_list.add(node);
+		}
+		
+		return nodes_list.first();
+	}
+
+	/* Retourne le noeud ayant le plus grand score de centralité de proximité */
+	/** Trop grande complexité **/
+	public Node getNodeWithGreaterClosenessCentrality() {
+		/* Comparator TreeSet sur les scores de centralité de proximité */
+		Comparator<Node> comp = (Node n1, Node n2) -> (Float.compare(this.getClosenessCentrality(n1), (this.getClosenessCentrality(n2))));
+		TreeSet<Node> nodes_list = new TreeSet<Node>(comp);
+		
+		for(Node node : this) {
+			nodes_list.add(node);
+		}
+		
+		return nodes_list.last();
+	}
+	
+	/* Retourne le noeud ayant le plus grand score de centralité intermédiaire */
+	public Node getNodeWithGreaterBetweennessCentrality() {
+		Comparator<Node> comp = (Node n1, Node n2) -> (Double.compare((double)n1.getAttribute("Cb"), ((double)n2.getAttribute("Cb"))));
+		TreeSet<Node> nodes_list = new TreeSet<Node>(comp);
+		
+		/* Execute l'algorithme de centralité intermédiaire */
+		BetweennessCentrality bcb = new BetweennessCentrality();
+		bcb.init(this);
+		bcb.compute();
+				
+		for(Node node : this) {
+			nodes_list.add(node);
+		}
+		
+		return nodes_list.last();
+	}
+	
+	/* Colore les noeuds en fonction de s'il sont influenceurs ou influencés */
+	public void showInfluencers() {
+		float averageCentrality = 0;
+		
+		/* Pour tous les noeuds */
+		for(Node node : this) {
+			if(node != null) {
+				averageCentrality += this.getCentralityByNeighborhood(node);
+			}
+		}
+
+		averageCentrality /= this.nodeCount;
+	     
+	    for(Node node : this) {
+	    	String color = "";
+	    	Node currentNode = node;
+	    	float centralityDegree = this.getCentralityByNeighborhood(currentNode);
+	    	
+	    	/* Code couleur : 
+	    	 * les sommets verts foncés : les très influencés
+	    	 * 			 		 clairs : les influencés
+	    	 * 			   jaunes		: influenceurs / influencés
+	    	 * 			   oranges	    : les influenceurs
+	    	 * 			   rouges       : les + gros influenceurs */
+	    	if(centralityDegree <= averageCentrality*0.25) {
+	    		color = "darkgreen";
+	    	}
+	    	else if(centralityDegree <= averageCentrality*0.5) {
+	    		color = "green";
+	    	}
+	    	else if(centralityDegree <= averageCentrality*1.25) {
+	    		color = "yellow";
+	    	}
+	    	else if(centralityDegree <= averageCentrality*1.5) {
+	    		color = "orange";
+	    	}
+	    	else {
+	    		color = "red";
+	    	}
+	    	
+	    	currentNode.setAttribute("ui.style", "fill-color: " + color + ";");
+	    }
+	}
+		
+	/* Fais apparaître les communautés sur le graphe */
+	/*public void showCommunities(int cutThreshold) {
+		int nEdges = this.getEdgeCount();
+		double length, averageLength = 0;
+
+		for(int i = 0; i < this.edgeCount; i++) {
+			Edge edge = this.getEdge(i);
+		    length = GraphPosLengthUtils.edgeLength(edge);
+		    edge.setAttribute("length", length);
+		    averageLength += length;
+		}
+		
+		averageLength /= nEdges;
+		System.out.println(averageLength);
+
+		for(int i = 0; i < this.edgeCount; i++) {
+			Edge edge = this.getEdge(i);
+			length  = edge.getNumber("length");
+			
+			if(length > averageLength * cutThreshold) {
+				edge.setAttribute("ui.class", "cut");
+				edge.setAttribute("cut");
+			    this.removeEdge(edge);
+			} 
+			else {
+				edge.removeAttribute("ui.class");
+			    edge.removeAttribute("cut");
+			}
+		}
+		
+        String styleSheet =
+    			"node { size: 7px; fill-color: rgb(150,150,150); }" +
+    			"edge { fill-color: rgb(255,50,50); size: 2px; }" +
+    			"edge.cut { fill-color: rgba(200,200,200,128); }";
+        
+        this.setAttribute("ui.stylesheet", styleSheet);
+
+	}*/
 }
