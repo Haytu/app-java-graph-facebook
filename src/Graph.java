@@ -204,6 +204,7 @@ public class Graph extends DefaultGraph implements GraphInterface {
 	}
 	
 	/* Retourne le noeud ayant le plus grand score de centralité intermédiaire */
+	/** Trop grande complexité **/
 	public Node getNodeWithGreaterBetweennessCentrality() {
 		Comparator<Node> comp = (Node n1, Node n2) -> (Double.compare((double)n1.getAttribute("Cb"), ((double)n2.getAttribute("Cb"))));
 		TreeSet<Node> nodes_list = new TreeSet<Node>(comp);
@@ -263,43 +264,4 @@ public class Graph extends DefaultGraph implements GraphInterface {
 	    	currentNode.setAttribute("ui.style", "fill-color: " + color + ";");
 	    }
 	}
-		
-	/* Fais apparaître les communautés sur le graphe */
-	/*public void showCommunities(int cutThreshold) {
-		int nEdges = this.getEdgeCount();
-		double length, averageLength = 0;
-
-		for(int i = 0; i < this.edgeCount; i++) {
-			Edge edge = this.getEdge(i);
-		    length = GraphPosLengthUtils.edgeLength(edge);
-		    edge.setAttribute("length", length);
-		    averageLength += length;
-		}
-		
-		averageLength /= nEdges;
-		System.out.println(averageLength);
-
-		for(int i = 0; i < this.edgeCount; i++) {
-			Edge edge = this.getEdge(i);
-			length  = edge.getNumber("length");
-			
-			if(length > averageLength * cutThreshold) {
-				edge.setAttribute("ui.class", "cut");
-				edge.setAttribute("cut");
-			    this.removeEdge(edge);
-			} 
-			else {
-				edge.removeAttribute("ui.class");
-			    edge.removeAttribute("cut");
-			}
-		}
-		
-        String styleSheet =
-    			"node { size: 7px; fill-color: rgb(150,150,150); }" +
-    			"edge { fill-color: rgb(255,50,50); size: 2px; }" +
-    			"edge.cut { fill-color: rgba(200,200,200,128); }";
-        
-        this.setAttribute("ui.stylesheet", styleSheet);
-
-	}*/
 }
