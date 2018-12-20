@@ -11,11 +11,25 @@ import org.graphstream.graph.Node;
 import org.graphstream.graph.implementations.*;
 
 public class Graph extends DefaultGraph implements GraphInterface {
-
+	/* Attributs */
+	private HashSet<Node> nodes;
+	
+	/* Constructeur */
 	public Graph(String id) {
 		super(id);
+		this.nodes = new HashSet<Node>();
 	}
 	
+	/* Getters */
+	public HashSet<Node> getNodes() {
+		return nodes;
+	}
+
+	/* Setters */
+	public void setNodes(HashSet<Node> nodes) {
+		this.nodes = nodes;
+	}
+
 	/* Parse et crée le graphe d'après les fichiers du dataset ego-facebook de Snap (ici dans data) */
 	public void init(String filename) {
 		try (BufferedReader br = new BufferedReader(new FileReader(filename))) {
@@ -24,20 +38,24 @@ public class Graph extends DefaultGraph implements GraphInterface {
 		    /* Pour chaque ligne du fichier */
 		    while ((line = br.readLine()) != null) {
 		    	String[] data = line.split(" ");
-		    	String Node1 = data[0];
-		    	String Node2 = data[1];
+		    	String node1_str = data[0];
+		    	String node2_str = data[1];
 		    	
 		    	/* Si le noeud n'existe pas */
-		    	if(this.getNode(Node1) == null) {
-		    		this.addNode(Node1);
+		    	if(this.getNode(node1_str) == null) {
+		    		/* Ajoute le noeud au graphe */
+		    		Node node1 = this.addNode(node1_str);
+		    		/* Ajoute le noeud à la liste des noeuds */
+					this.nodes.add(node1);
 		    	}
 		    	
-		    	if(this.getNode(Node2) == null) {
-					this.addNode(Node2);
+		    	if(this.getNode(node2_str) == null) {
+					Node node2 = this.addNode(node2_str);
+					this.nodes.add(node2);
 	    		}
 		    		
 		    	/* Ajoute l'arête entre les deux noeuds */
-				this.addEdge(Node1 + Node2, Node1, Node2);
+				this.addEdge(node1_str + node2_str, node1_str, node2_str);
 				
 		    }
 		} catch (IOException e) {
@@ -165,14 +183,13 @@ public class Graph extends DefaultGraph implements GraphInterface {
 	public Node getNodeWithGreaterCentralityByNeighborhood() {
 		/* Comparator TreeSet sur les scores de centralité par voisinage */
 		Comparator<Node> comp = (Node n1, Node n2) -> (Float.compare(this.getCentralityByNeighborhood(n1), (this.getCentralityByNeighborhood(n2))));
-		TreeSet<Node> nodes_list = new TreeSet<Node>(comp);
 		
-		/* Pour tous les noeuds */
-		for(Node node : this) {
-			nodes_list.add(node);
-		}
+		/* On crée un TreeSet à partir de la liste des noeuds de notre graphe */
+		TreeSet<Node> nodesSortedByCbyN = new TreeSet<Node>(comp);
+		nodesSortedByCbyN.addAll(this.nodes);
 		
-		return nodes_list.last();
+		/* On retourne le dernier : celui qui a la + grande centralité par voisinage */
+		return nodesSortedByCbyN.last();
 	}
 
 	/* Retourne le noeud ayant le plus grand score de centralité moyenne */
@@ -180,13 +197,10 @@ public class Graph extends DefaultGraph implements GraphInterface {
 	public Node getNodeWithGreaterAverageCentrality() {
 		/* Comparator TreeSet sur les scores de centralité moyenne */
 		Comparator<Node> comp = (Node n1, Node n2) -> (Float.compare(this.getAverageCentrality(n1), (this.getAverageCentrality(n2))));
-		TreeSet<Node> nodes_list = new TreeSet<Node>(comp);
+		TreeSet<Node> nodesSortedByAC = new TreeSet<Node>(comp);
+		nodesSortedByAC.addAll(this.nodes);
 		
-		for(Node node : this) {
-			nodes_list.add(node);
-		}
-		
-		return nodes_list.first();
+		return nodesSortedByAC.first();
 	}
 
 	/* Retourne le noeud ayant le plus grand score de centralité de proximité */
@@ -194,31 +208,26 @@ public class Graph extends DefaultGraph implements GraphInterface {
 	public Node getNodeWithGreaterClosenessCentrality() {
 		/* Comparator TreeSet sur les scores de centralité de proximité */
 		Comparator<Node> comp = (Node n1, Node n2) -> (Float.compare(this.getClosenessCentrality(n1), (this.getClosenessCentrality(n2))));
-		TreeSet<Node> nodes_list = new TreeSet<Node>(comp);
+		TreeSet<Node> nodesSortedByCC = new TreeSet<Node>(comp);
+		nodesSortedByCC.addAll(this.nodes);
 		
-		for(Node node : this) {
-			nodes_list.add(node);
-		}
-		
-		return nodes_list.last();
+		return nodesSortedByCC.last();
 	}
 	
 	/* Retourne le noeud ayant le plus grand score de centralité intermédiaire */
 	/** Trop grande complexité **/
 	public Node getNodeWithGreaterBetweennessCentrality() {
 		Comparator<Node> comp = (Node n1, Node n2) -> (Double.compare((double)n1.getAttribute("Cb"), ((double)n2.getAttribute("Cb"))));
-		TreeSet<Node> nodes_list = new TreeSet<Node>(comp);
+		TreeSet<Node> nodesSortedByBC = new TreeSet<Node>(comp);
 		
 		/* Execute l'algorithme de centralité intermédiaire */
 		BetweennessCentrality bcb = new BetweennessCentrality();
 		bcb.init(this);
 		bcb.compute();
 				
-		for(Node node : this) {
-			nodes_list.add(node);
-		}
+		nodesSortedByBC.addAll(this.nodes);
 		
-		return nodes_list.last();
+		return nodesSortedByBC.last();
 	}
 	
 	/* Colore les noeuds en fonction de s'il sont influenceurs ou influencés */
@@ -234,6 +243,7 @@ public class Graph extends DefaultGraph implements GraphInterface {
 
 		averageCentrality /= this.nodeCount;
 	     
+		/* Pour tous les noeuds */
 	    for(Node node : this) {
 	    	String color = "";
 	    	Node currentNode = node;

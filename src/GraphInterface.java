@@ -29,6 +29,7 @@ public interface GraphInterface {
 	public Node getNodeWithGreaterCentralityByNeighborhood();
 	public Node getNodeWithGreaterAverageCentrality();
 	public Node getNodeWithGreaterClosenessCentrality();
+	public Node getNodeWithGreaterBetweennessCentrality();
 	
 	/* Détection des influenceurs */
 	public void showInfluencers();
